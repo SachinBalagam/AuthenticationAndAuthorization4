@@ -5,9 +5,16 @@ import Loader from 'react-loader-spinner'
 import ProductCard from '../ProductCard'
 import './index.css'
 
+const apiStatusConstants = {
+  success: 'SUCCESS',
+  failure: 'FAILURE',
+  inProgress: 'IN_PROGRESS',
+}
+
 class PrimeDealsSection extends Component {
   state = {
     primeDeals: [],
+    apiStatus: '',
   }
 
   componentDidMount() {
@@ -15,6 +22,7 @@ class PrimeDealsSection extends Component {
   }
 
   getPrimeDeals = async () => {
+    this.setState({apiStatus: apiStatusConstants.inProgress})
     const jwtToken = Cookies.get('jwt_token')
 
     const apiUrl = 'https://apis.ccbp.in/prime-deals'
@@ -25,7 +33,7 @@ class PrimeDealsSection extends Component {
       method: 'GET',
     }
     const response = await fetch(apiUrl, options)
-    if (response.ok === true) {
+    if (response.status === 200) {
       const fetchedData = await response.json()
       const updatedData = fetchedData.prime_deals.map(product => ({
         title: product.title,
@@ -37,7 +45,10 @@ class PrimeDealsSection extends Component {
       }))
       this.setState({
         primeDeals: updatedData,
+        apiStatus: apiStatusConstants.success,
       })
+    } else if (response.status === 401) {
+      this.setState({apiStatus: apiStatusConstants.failure})
     }
   }
 
@@ -70,7 +81,17 @@ class PrimeDealsSection extends Component {
   )
 
   render() {
-    return this.renderPrimeDealsList()
+    const {apiStatus} = this.state
+    switch (apiStatus) {
+      case apiStatusConstants.success:
+        return this.renderPrimeDealsList()
+      case apiStatusConstants.failure:
+        return this.renderPrimeDealsFailureView()
+      case apiStatusConstants.inProgress:
+        return this.renderLoadingView()
+      default:
+        return null
+    }
   }
 }
 
